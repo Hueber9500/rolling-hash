@@ -3,14 +3,26 @@
 #include <string.h>
 #include <cmath>
 #include <vector>
+#include <bitset>
+#include <fstream>
+#include <map>
+#include <sstream>
 #include <openssl/sha.h>
+#include "FileStream.h"
+#include "StringStream.h"
+#include <memory>
+
+#include <iomanip>
+#include <utility>
+#include "ChunkInfo.h"
+#include "Chunker.h"
+#include "Comparer.h"
 
 using namespace std;
 
-typedef unsigned char byte;
-
-const int base = 257;
-const int mod = 1000000007;
+const int base = 2287;
+const int window_size = 4;
+const long long mod = 100000012459;
 
 int rolling_hash_code(const char* data)
 {
@@ -22,18 +34,30 @@ int rolling_hash_code(const char* data)
         ret = ret * base + int(data[i]);
         ret %= mod;
     }
-
+    
     return ret < 0 ? ret + mod : ret;
+}
 
-    // size_t length = strlen(data);
-    // int result = 0;
-    // for(int i = 0;i <= length-1; i++)
-    // {
-    //     int char_code = (data[i] - 'a' + 1);
-    //     result += char_code * std::pow(base, length - 1 - i);
-    // }
+std::string convert_byte_array_to_hex(unsigned char* arr, size_t size)
+{
+    std::string hex (size * 2, ' ');
+    for(size_t i = 0; i < size; i++)
+    {
+        hex[2 * i]     = hexmap[(arr[i] & 0xF0) >> 4];
+        hex[2 * i + 1] = hexmap[arr[i] & 0x0F];
+    }
 
-    // return (result % mod + mod) % mod;
+    return hex;
+}
+
+std::string text()
+{
+    return "The fact that template type deduction deduces the “wrong” types for 0 and NULL (i.e., their true types, rather than their fallback meaning as a representation for a null pointer) is the most compelling reason to use nullptr instead of 0 or NULL when you want to refer to a null pointer. With nullptr, templates pose no special challenge. Combined with the fact that nullptr doesn’t suffer from the overload resolution sur prises that 0 and NULL are susceptible to, the case is ironclad.";
+}
+
+std::string text2()
+{
+    return "that template type deduction deduces the “wrong” types for 0 and NULL (i.e., their true types, rather than their fallback meaning as a representation for a null pointer) is the most compelling reason to use nullptr instead of 0 or NULL when you want to refer to a null pointer. With nullptr, templates pose no special challenge. Combined with the fact that nullptr doesn’t suffer from the overload resolution sur prises that 0 and NULL are susceptible to, the case is ironclad.";
 }
 
 int rabin_karp_algo(const string& pattern, const string& data)
@@ -57,8 +81,8 @@ int rabin_karp_algo(const string& pattern, const string& data)
             hash2 %= mod;
         }
 
-    	if (i >= pattern.size()-1 && hash1 == hash2){
-            cout<<"Found match at position "<< i - (pattern.size()-1) <<endl;
+    	if (i >= pattern.size() - 1 && hash1 == hash2){
+            cout<<"Found match at position "<< i - (pattern.size() - 1) <<endl;
         }
     }
 
@@ -75,69 +99,167 @@ int get_next_rolling_hash(char data, int hash, char new_data, int window_length)
     return (result % mod + mod) % mod;
 }
 
-int main()
-{
-    unsigned char hex[20]={0};
-
-    string s1 = "this is phenomenalomen";
-
-    SHA1((unsigned char*)s1.c_str(), s1.length(), hex);
-
-    constexpr char characters[] = "0123456789ABCDEF";
-
-  // Zeroes out the buffer unnecessarily, can't be avoided for std::string.
-  std::string ret(20 * 2, 0);
-  
-  // Hack... Against the rules but avoids copying the whole buffer.
-  auto buf = const_cast<char *>(ret.data());
-  
-  for (const auto &oneInputByte : hex)
-  {
-    *buf++ = characters[oneInputByte >> 4];
-    *buf++ = characters[oneInputByte & 0x0F];
-  }
-
-    string sMatch = "is";
-
-    rabin_karp_algo(sMatch, s1);
-
-    int a[] = {1,2,3};
-    char str[] = "this is phenomenalomen";
-    vector<char> v(str, str + strlen(str));
-    strlen(str);
-    const char* pattern = "ome";
-    int target_hash = rolling_hash_code(pattern);
-    cout<<"Target hash: "<<target_hash<<endl;
-    int window_length = strlen(pattern);
-
-    char current_substr[strlen(pattern)];
-    memset(current_substr,0, strlen(current_substr));
-
-    strncpy(current_substr, str, strlen(pattern));
-    int current_hash = rolling_hash_code(current_substr);
-
-    if(target_hash == current_hash)
-    {
-        cout<<"Found substring starting at position 0"<<endl;
+void replace_all(std::string& str, const std::string& from, const std::string& to) {
+    if(from.empty())
+        return;
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
     }
+}
 
-    char substr[3] = {0};
-    for(int i=window_length; i< strlen(str); i++)
+void test2()
+{
+    std::string original(text());
+    std::string modified(text2());
+    //replace_all(modified, "denounc", "renounc");
+
+    StringStream ss1(original);
+    StringStream ss2(modified);
+
+    RollingHash hash(base, 4);
+
+    vector<ChunkInfo> original_chunks = Chunker(&ss1, &hash).chunkFile();
+    vector<ChunkInfo> new_chunks = Chunker(&ss2, &hash).chunkFile();
+
+    auto delta = Comparer().Delta(original_chunks, new_chunks, true);
+
+    std::for_each(delta.begin(), delta.end(), [](DifferenceDescriptor& el) {
+        std::cout<< (el.action == Action::Delete ? "Remove from " : "Add from ")<< (el.from_file == FileType::New ? "new " : "old")<<" file: ";
+        std::cout<<" "<<" "<<el.from_position<<" "<<el.to_position<<endl;
+    });
+
+    for(vector<ChunkInfo>::const_iterator it = new_chunks.cbegin(); it!= new_chunks.cend(); it++)
     {
-        current_hash = get_next_rolling_hash(str[i - window_length], current_hash, str[i], window_length);
-        std::copy(v.begin() + i, v.begin() + i + window_length, current_substr);
-        int alternative_current_hash = rolling_hash_code(current_substr);
+        int found = false;
 
-        cout<<"Hashes for "<< current_substr <<" : "<< current_hash << " " << alternative_current_hash<<endl;
+        for(vector<ChunkInfo>::const_iterator old_it = original_chunks.cbegin(); old_it != original_chunks.cend(); old_it++)
+        {
+            if( strncmp(it->sha1_hex, old_it->sha1_hex, sizeof(it->sha1_hex)) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
 
-        if(target_hash == current_hash){
-            cout<<"Found substring starting at position "<<i - window_length + 1<<endl;
+        if(!found)
+        {
+            std::cout<<"Original file is missing: \n"<< it->data<< "\nAt position "<<it->offset << " with length "<<it->length<<endl;
         }
     }
 
-    std::cout<<"Xsss";
-    int x=1;
-    x++;
+    cout<<endl;
 
+    for(vector<ChunkInfo>::const_iterator it = original_chunks.cbegin(); it!= original_chunks.cend(); it++)
+    {
+        int found = false;
+
+        for(vector<ChunkInfo>::const_iterator old_it = new_chunks.cbegin(); old_it != new_chunks.cend(); old_it++)
+        {
+            if( strncmp(it->sha1_hex, old_it->sha1_hex, sizeof(it->sha1_hex)) == 0 )
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if(!found)
+        {
+            std::cout<<"New file is missing:\n"<< it->data<< "\nAt position "<<it->offset << " with length "<<it->length<<endl;
+        }
+    }
+}
+
+void test()
+{
+    string original("original.txt");
+    string new_file("new.txt");
+
+    fstream out_stream;
+
+    out_stream.open(original, std::ios_base::out);
+
+    if(out_stream.is_open())
+    {
+        out_stream<<text();
+        cout<<text()<<endl;
+        out_stream.flush();
+        out_stream.close();
+        out_stream.clear();
+    }
+
+    out_stream.open(new_file, std::ios_base::out);
+
+    if(out_stream.is_open())
+    {
+        std::string str(text());
+        replace_all(str, "denounc", "renounc");
+        cout<<str<<endl;
+        out_stream<<str;
+        out_stream.flush();
+        out_stream.close();
+        out_stream.clear();
+    }
+
+    FileStream fstream(original.c_str());
+    RollingHash hash(2273, 4);
+
+    Chunker chunker(&fstream, &hash);
+    FileStream fstream2(new_file.c_str());
+    
+    vector<ChunkInfo> original_chunks = chunker.chunkFile();
+    vector<ChunkInfo> new_chunks = Chunker(&fstream2, &hash).chunkFile();
+
+    cout<<"New file chunks count "<<new_chunks.size()<< " Original file chunks count "<<original_chunks.size()<<endl;
+
+    for(vector<ChunkInfo>::const_iterator it = new_chunks.cbegin(); it!= new_chunks.cend(); it++)
+    {
+        int found = false;
+
+        for(vector<ChunkInfo>::const_iterator old_it = original_chunks.cbegin(); old_it != original_chunks.cend(); old_it++)
+        {
+            
+            if( strncmp(it->sha1_hex, old_it->sha1_hex, sizeof(it->sha1_hex)) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+        cout<<endl;
+
+        if(!found)
+        {
+            std::cout<<"Original file is missing: "<< it->data<< " At position "<<it->offset << " with length "<<it->length<<endl;
+        }
+    }
+
+    for(vector<ChunkInfo>::const_iterator it = original_chunks.cbegin(); it!= original_chunks.cend(); it++)
+    {
+        int found = false;
+
+        for(vector<ChunkInfo>::const_iterator old_it = new_chunks.cbegin(); old_it != new_chunks.cend(); old_it++)
+        {
+            if( strncmp(it->sha1_hex, old_it->sha1_hex, sizeof(it->sha1_hex)) == 0 )
+            {
+                found = true;
+                break;
+            }
+        }
+        cout<<endl;
+
+        if(!found)
+        {
+            std::cout<<"New file is missing: "<< it->data<< " At position "<<it->offset << " with length "<<it->length<<endl;
+        }
+    }
+
+    remove(original.c_str());
+    remove(new_file.c_str());
+}
+
+int main()
+{
+    test2();
     return 0;
 }
