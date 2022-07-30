@@ -3,6 +3,7 @@
 #include <string.h>
 #include <cmath>
 #include <vector>
+#include <openssl/sha.h>
 
 using namespace std;
 
@@ -76,7 +77,26 @@ int get_next_rolling_hash(char data, int hash, char new_data, int window_length)
 
 int main()
 {
+    unsigned char hex[20]={0};
+
     string s1 = "this is phenomenalomen";
+
+    SHA1((unsigned char*)s1.c_str(), s1.length(), hex);
+
+    constexpr char characters[] = "0123456789ABCDEF";
+
+  // Zeroes out the buffer unnecessarily, can't be avoided for std::string.
+  std::string ret(20 * 2, 0);
+  
+  // Hack... Against the rules but avoids copying the whole buffer.
+  auto buf = const_cast<char *>(ret.data());
+  
+  for (const auto &oneInputByte : hex)
+  {
+    *buf++ = characters[oneInputByte >> 4];
+    *buf++ = characters[oneInputByte & 0x0F];
+  }
+
     string sMatch = "is";
 
     rabin_karp_algo(sMatch, s1);
