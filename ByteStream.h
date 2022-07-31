@@ -3,7 +3,7 @@
 class ByteStream
 {
     public:
-        virtual void readByte(char* arr, int size) = 0;
+        virtual void readBytes(char* arr, int size) = 0;
 
         virtual bool isEndOfStream() = 0;
 

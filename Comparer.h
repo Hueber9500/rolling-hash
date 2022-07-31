@@ -19,14 +19,18 @@ struct DifferenceDescriptor
     Action action;
     int from_position;
     int to_position;
+
+    DifferenceDescriptor(){
+        memset(this, 0, sizeof(*this));
+    }
 };
 
 class Comparer
 {
     public:
-        std::vector<DifferenceDescriptor> Delta(const std::vector<ChunkInfo>& original, const std::vector<ChunkInfo>& modified, bool only_differences = false)
+        std::vector<DifferenceDescriptor> delta(const std::vector<ChunkInfo>& original, const std::vector<ChunkInfo>& modified, bool only_differences = false)
         {
-            std::vector<DifferenceDescriptor> delta;
+            std::vector<DifferenceDescriptor> diff;
             for(std::vector<ChunkInfo>::const_iterator it = modified.cbegin(); it!= modified.cend(); it++)
             {
                 int found = false;
@@ -40,28 +44,26 @@ class Comparer
                 }
 
                 DifferenceDescriptor current;
+                current.from_position = it->offset;
+                current.to_position = it->offset + it->length - 1;
 
                 if( found ) 
                 {
                     current.action = Action::Keep;
                     current.from_file = FileType::Old;
-                    current.from_position = it->offset;
-                    current.to_position = it->length;
                 } 
                 else 
                 {
                     current.action = Action::Insert;
                     current.from_file = FileType::New;
-                    current.from_position = it->offset;
-                    current.to_position = it->length;
                 }
 
                 if ( only_differences ) {
                     if ( current.action != Action::Keep ) {
-                        delta.push_back(std::move(current));
+                        diff.push_back(std::move(current));
                     }
                 } else {
-                    delta.push_back(std::move(current));
+                    diff.push_back(std::move(current));
                 }
             }
 
@@ -84,12 +86,12 @@ class Comparer
                     current.action = Action::Delete;
                     current.from_file = FileType::Old;
                     current.from_position = it->offset;
-                    current.to_position = it->length;
+                    current.to_position = it->offset + it->length - 1;
 
-                    delta.push_back(std::move(current));
+                    diff.push_back(std::move(current));
                 }
             }
 
-            return delta;
+            return diff;
         }
 };

@@ -20,6 +20,14 @@ class Chunker
         {
         }
 
+        Chunker(const Chunker& other) = delete;
+
+        Chunker(Chunker&& other) = delete;
+
+        Chunker& operator=(Chunker&& rhs) = delete;
+
+        Chunker& operator=(const Chunker& rhs) = delete;
+
     public:
         std::vector<ChunkInfo> chunkFile()
         {
@@ -33,14 +41,14 @@ class Chunker
 
             unsigned char output_hash [20] = {0};
             int index = 0;
-            int last = 0;
+            int last = -1;
             int length = m_pStream->length();
 
             while (!m_pStream->isEndOfStream())
             {
                 char current_byte;
             
-                m_pStream->readByte(&current_byte, 1);
+                m_pStream->readBytes(&current_byte, 1);
 
                 m_pRollingHash->AddByte(current_byte);
                 bytes_buffer.push_back(current_byte);
@@ -56,7 +64,7 @@ class Chunker
                     /// add rolling hash to map
                     ChunkInfo ci(
                         (int)bytes_buffer.size(), 
-                        last,
+                        last + 1,
                         m_pRollingHash->GetHash(),
                         std::string((char*)&bytes_buffer[0], bytes_buffer.size()),
                         (char*)&hash_hex[0]

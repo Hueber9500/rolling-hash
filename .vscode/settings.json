@@ -74,6 +74,14 @@
         "variant": "cpp",
         "__functional_base": "cpp",
         "functional": "cpp",
-        "iterator": "cpp"
+        "iterator": "cpp",
+        "condition_variable": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "future": "cpp",
+        "thread": "cpp",
+        "cinttypes": "cpp"
     }
 }

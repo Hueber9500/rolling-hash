@@ -11,6 +11,7 @@
 #include "FileStream.h"
 #include "StringStream.h"
 #include <memory>
+#include <algorithm>
 
 #include <iomanip>
 #include <utility>
@@ -24,7 +25,7 @@ const int base = 2287;
 const int window_size = 4;
 const long long mod = 100000012459;
 
-int rolling_hash_code(const char* data)
+int rollingHashCode(const char* data)
 {
     long long ret = 0;
     size_t length = strlen(data);
@@ -38,7 +39,7 @@ int rolling_hash_code(const char* data)
     return ret < 0 ? ret + mod : ret;
 }
 
-std::string convert_byte_array_to_hex(unsigned char* arr, size_t size)
+std::string convertByteArrayToHex(unsigned char* arr, size_t size)
 {
     std::string hex (size * 2, ' ');
     for(size_t i = 0; i < size; i++)
@@ -60,9 +61,9 @@ std::string text2()
     return "that template type deduction deduces the “wrong” types for 0 and NULL (i.e., their true types, rather than their fallback meaning as a representation for a null pointer) is the most compelling reason to use nullptr instead of 0 or NULL when you want to refer to a null pointer. With nullptr, templates pose no special challenge. Combined with the fact that nullptr doesn’t suffer from the overload resolution sur prises that 0 and NULL are susceptible to, the case is ironclad.";
 }
 
-int rabin_karp_algo(const string& pattern, const string& data)
+int rabinKarpAlgo(const string& pattern, const string& data)
 {
-    long long hash1 = rolling_hash_code(pattern.c_str());
+    long long hash1 = rollingHashCode(pattern.c_str());
     long long hash2 = 0;
     long long power = 1;
 
@@ -90,7 +91,7 @@ int rabin_karp_algo(const string& pattern, const string& data)
 
 }
 
-int get_next_rolling_hash(char data, int hash, char new_data, int window_length)
+int getNextRollingHash(char data, int hash, char new_data, int window_length)
 {
     int first_char_code = (int)data;
     int last_new_char_code = int(new_data);
@@ -99,7 +100,7 @@ int get_next_rolling_hash(char data, int hash, char new_data, int window_length)
     return (result % mod + mod) % mod;
 }
 
-void replace_all(std::string& str, const std::string& from, const std::string& to) {
+void replaceAll(std::string& str, const std::string& from, const std::string& to) {
     if(from.empty())
         return;
     size_t start_pos = 0;
@@ -113,7 +114,6 @@ void test2()
 {
     std::string original(text());
     std::string modified(text2());
-    //replace_all(modified, "denounc", "renounc");
 
     StringStream ss1(original);
     StringStream ss2(modified);
@@ -123,7 +123,7 @@ void test2()
     vector<ChunkInfo> original_chunks = Chunker(&ss1, &hash).chunkFile();
     vector<ChunkInfo> new_chunks = Chunker(&ss2, &hash).chunkFile();
 
-    auto delta = Comparer().Delta(original_chunks, new_chunks, true);
+    auto delta = Comparer().delta(original_chunks, new_chunks, true);
 
     std::for_each(delta.begin(), delta.end(), [](DifferenceDescriptor& el) {
         std::cout<< (el.action == Action::Delete ? "Remove from " : "Add from ")<< (el.from_file == FileType::New ? "new " : "old")<<" file: ";
@@ -194,7 +194,7 @@ void test()
     if(out_stream.is_open())
     {
         std::string str(text());
-        replace_all(str, "denounc", "renounc");
+        replaceAll(str, "denounc", "renounc");
         cout<<str<<endl;
         out_stream<<str;
         out_stream.flush();

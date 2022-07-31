@@ -13,14 +13,22 @@ class StringStream : public ByteStream
 
         }
 
-        void readByte(char* arr, int size)
+        StringStream(const StringStream& other) = delete;
+
+        StringStream(StringStream&& other) = delete;
+
+        StringStream& operator=(StringStream&& rhs) = delete;
+
+        StringStream& operator=(const StringStream& rhs) = delete;
+
+        void readBytes(char* arr, int size)
         {
+            if (isEndOfStream()){
+                return;
+            }
+            
             strncpy(arr, m_strData.c_str() + m_nIdx, size);
             m_nIdx += size;
-            // for(int i=m_nIdx; i < m_nIdx + size && i < m_strData.length() ; i++)
-            // {
-            //     arr[i - m_nIdx] = m_strData[i];
-            // }
         }
 
         bool isEndOfStream()

@@ -13,7 +13,15 @@ class FileStream : public ByteStream
         {
         }
 
-        void readByte(char* arr, int size)
+        FileStream(const FileStream& other) = delete;
+
+        FileStream(FileStream&& other) = delete;
+
+        FileStream& operator=(FileStream&& rhs) = delete;
+
+        FileStream& operator=(const FileStream& rhs) = delete;
+
+        void readBytes(char* arr, int size)
         {
             if (file) file.read(arr, size);
         }

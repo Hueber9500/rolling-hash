@@ -9,7 +9,7 @@ struct ChunkInfo{
     std::string data;
     char sha1_hex[40];
 
-    ChunkInfo(int length, int offset, long long rolling_hash, std::string data, char* hex_hash):
+    ChunkInfo(int length, int offset, long long rolling_hash, std::string data, const char* hex_hash):
         length(length), offset(offset), data(data), rolling_hash(rolling_hash)
     {
         strncpy(sha1_hex, hex_hash, sizeof(sha1_hex));
