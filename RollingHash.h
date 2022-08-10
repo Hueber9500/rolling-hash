@@ -15,9 +15,11 @@ class RollingHash : public BaseRollingHash{
     public:
         RollingHash(const RollingHash& obj) : BaseRollingHash(obj.width)
         {
-            if( this != &obj)
+            if( this != &obj )
             {
                 delete[] arr;
+
+                arr = new unsigned char[obj.width];
 
                 base = obj.base;
                 width = obj.width;
